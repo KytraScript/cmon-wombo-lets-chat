@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(0, '../')
 import argparse
 import datetime
 import inspect
@@ -6,27 +8,21 @@ from omegaconf import OmegaConf
 
 import torch
 import shutil
-import diffusers
 from diffusers import AutoencoderKL, DDIMScheduler
 
-from tqdm.auto import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer
-import re
 
-from animatediff.models.unet import UNet3DConditionModel
-from animatediff.pipelines.pipeline_animation import AnimationPipeline
-from animatediff.utils.util import save_videos_grid
-from animatediff.utils.convert_from_ckpt import convert_ldm_unet_checkpoint, convert_ldm_clip_checkpoint, \
-    convert_ldm_vae_checkpoint
-from animatediff.utils.convert_lora_safetensor_to_diffusers import convert_lora
+
+from unet import UNet3DConditionModel
+from pipeline_animation import AnimationPipeline
+from util import save_videos_grid
+from convert_from_ckpt import convert_ldm_unet_checkpoint, convert_ldm_clip_checkpoint, \
+        convert_ldm_vae_checkpoint
+from convert_lora_safetensor_to_diffusers import convert_lora
 from diffusers.utils.import_utils import is_xformers_available
 
-from einops import rearrange, repeat
-
-import csv, pdb, glob
 from safetensors import safe_open
-import math
-from pathlib import Path
+import re
 
 
 def main(args):
@@ -39,16 +35,12 @@ def main(args):
         args.context_overlap = args.context_length // 2
 
     time_str = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-    if args.cloudsave:
-        savedir = f"/content/drive/MyDrive/AnimateDiff/outputs/{time_str}"
-    else:
-        savedir = f"{outputdir}/{time_str}"
+    savedir = f"/content/drive/MyDrive/AnimateDiff/outputs/{time_str}"
     os.makedirs(savedir)
+    os.makedirs(f'./AnimateDiff/outputs/{time_str}')
     inference_config = OmegaConf.load(args.inference_config)
-
     config = OmegaConf.load(args.config)
     samples = []
-
     sample_idx = 0
 
     print('Made it to line 54')
@@ -66,7 +58,10 @@ def main(args):
                                                            unet_additional_kwargs=OmegaConf.to_container(
                                                                inference_config.unet_additional_kwargs))
             print('Made it to line 68')
-            if is_xformers_available(): unet.enable_xformers_memory_efficient_attention()
+            if is_xformers_available():
+                print("Enabling Xformers")
+                #unet.enable_attention_slicing()
+                unet.enable_xformers_memory_efficient_attention()
 
             pipeline = AnimationPipeline(
                 vae=vae, text_encoder=text_encoder, tokenizer=tokenizer, unet=unet,
@@ -159,7 +154,7 @@ def main(args):
 
                 prompt = "-".join((prompt.replace("/", "").split(" ")[:10]))
                 prompt = re.sub(r'[^\w\s-]', '', prompt)[:16]
-                save_videos_grid(sample, f"{savedir}/{sample_idx}-{prompt}-{time_str}.gif")
+                save_videos_grid(sample, f"./AnimateDiff/outputs/{time_str}/{sample_idx}-{prompt}-{time_str}.gif")
                 if args.cloudsave:
                     save_videos_grid(sample, f"/content/outputs/{time_str}/{sample_idx}-{prompt}-{time_str}.gif")
                 print(f"saving original scale outputs to {savedir}/{sample_idx}-{prompt}-{time_str}.gif")
@@ -168,20 +163,23 @@ def main(args):
 
     samples = torch.concat(samples)
     save_videos_grid(samples, f"{savedir}/combined.gif", n_rows=4)
+    save_videos_grid(samples, f"./AnimateDiff/latest.gif", n_rows=4)
     if args.cloudsave:
         save_videos_grid(samples, f"/content/latest.gif", n_rows=4)
     OmegaConf.save(config, f"{savedir}/config.yaml")
+    OmegaConf.save(config, f"./AnimateDiff/outputs/{time_str}/config.yaml")
     if init_image is not None:
         shutil.copy(init_image, f"{savedir}/init_image.jpg")
+        shutil.copy(init_image, f"./AnimateDiff/outputs/{time_str}/init_image.jpg")
 
 
 if __name__ == "__main__":
     print('attempting to parse arguments 1')
     parser = argparse.ArgumentParser()
     print('first stage arguments parsed')
-    parser.add_argument("--pretrained_model_path", type=str, default="models/StableDiffusion/stable-diffusion-v1-5", )
-    parser.add_argument("--inference_config", type=str, default="configs/inference/inference.yaml")
-    parser.add_argument("--config", type=str, required=True)
+    parser.add_argument("--pretrained_model_path", type=str, default="./AnimateDiff/models/StableDiffusion" )
+    parser.add_argument("--inference_config", type=str, default="./AnimateDiff/configs/inference/inference.yaml")
+    parser.add_argument("--config", type=str, default="./AnimateDiff/configs/prompts/2-User.yaml")
     parser.add_argument("--cloudsave", type=bool, default=False)
     parser.add_argument("--outputdir", type=str, default='AnimateDiff/outputs/')
     parser.add_argument("--fp32", action="store_true")
