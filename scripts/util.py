@@ -28,7 +28,7 @@ def save_videos_grid(videos: torch.Tensor, path: str, rescale=False, n_rows=6):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     try:
         print("Saving image to", path)
-        imageio.mimsave(path, outputs, duration=125)
+        imageio.mimsave(path, outputs, duration=125, loop=0)
         print("Image saved. File exists:", os.path.exists(path))
     except Exception as e:
         print(f'{e}')

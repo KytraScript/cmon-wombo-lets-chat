@@ -351,35 +351,35 @@ class AnimationPipeline(DiffusionPipeline):
             init_latents = None
         shape = (
         batch_size, num_channels_latents, video_length, height // self.vae_scale_factor, width // self.vae_scale_factor)
-        print("inside prepare latents block")
+        print("Preparing Latents...")
         if isinstance(generator, list) and len(generator) != batch_size:
             raise ValueError(
                 f"You have passed a list of generators of length {len(generator)}, but requested an effective batch"
                 f" size of {batch_size}. Make sure the batch size matches the length of the generators."
             )
         if init_image is not None:
-            print("inside init image block")
+            print("Preparing Latents from Init Image...")
             image = PIL.Image.open(init_image)
             image = preprocess_image(image)
-            print("preprocessing_image completed")
+            #print("preprocessing_image completed")
             if not isinstance(image, (torch.Tensor, PIL.Image.Image, list)):
                 raise ValueError(
                     f"`image` has to be of type `torch.Tensor`, `PIL.Image.Image` or list but is {type(image)}"
                 )
             image = image.to(device=device, dtype=dtype)
-            print("image cast to device")
+            #print("image cast to device")
             if isinstance(generator, list):
                 init_latents = [
                     self.vae.encode(image[i: i + 1]).latent_dist.sample(generator[i]) for i in range(batch_size)
                 ]
                 init_latents = torch.cat(init_latents, dim=0)
-                print("inside isinstance generator init latents")
+                #print("inside isinstance generator init latents")
             else:
-                print("init_latents = self.vae.encode")
+                #print("init_latents = self.vae.encode")
                 try:
                     image = image.to(torch.device("cuda"), dtype=dtype)
                     init_latents = self.vae.encode(image).latent_dist.sample(generator)
-                    print("done creating init_latents")
+                    #print("done creating init_latents")
                 except Exception as e:
                     print(f"Error: {e}")
                     print(f"Image shape: {image.shape}")
@@ -390,7 +390,7 @@ class AnimationPipeline(DiffusionPipeline):
             rand_device = "cpu" if device.type == "mps" else device
 
             if isinstance(generator, list):
-                print("inside the isinstancegenerator")
+                #print("inside the isinstancegenerator")
                 shape = shape
                 # shape = (1,) + shape[1:]
                 latents = [
@@ -401,22 +401,22 @@ class AnimationPipeline(DiffusionPipeline):
             else:
                 latents = torch.randn(shape, generator=generator, device=rand_device, dtype=dtype).to(device)
                 if init_latents is not None:
-                    print("We doing this...")
+                    #print("We doing this...")
                     influence = 68
                     for i in range(video_length):
-                        print("Doing the loop")
+                        #print("Doing the loop")
                         # I just feel dividing by 30 yield stable result but I don't know why
                         # gradully reduce init alpha along video frames (loosen restriction)
                         try:
                             init_alpha = (video_length - float(i)) / video_length / influence
                             init_latents = init_latents.to(device)
                             latents = latents.to(device)
-                            print("init_alpha established")
+                            #print("init_alpha established")
                             latents[:, :, i, :, :] = init_latents * (.00969) + latents[:, :, i, :, :] * (
                                         1 - (.0169)) #maybe second one should be .0292
                             influence -= 4
-                            print(str(init_alpha))
-                            print(str(init_latents * .00969))
+                            #print(str(init_alpha))
+                            #print(str(init_latents * .00969))
                             if influence <= 10:
                                 influence = 10
                         except Exception as e:
@@ -462,7 +462,7 @@ class AnimationPipeline(DiffusionPipeline):
             fp16=False,
             **kwargs,
     ):
-        print("made it into the call")
+        print("Made it to the main function call...")
         # Default height and width to unet
         height = height or self.unet.config.sample_size * self.vae_scale_factor
         width = width or self.unet.config.sample_size * self.vae_scale_factor
@@ -484,7 +484,7 @@ class AnimationPipeline(DiffusionPipeline):
         # of the Imagen paper: https://arxiv.org/pdf/2205.11487.pdf . `guidance_scale = 1`
         # corresponds to doing no classifier free guidance.
         do_classifier_free_guidance = guidance_scale > 1.0
-        print("Just before input prompt")
+        #print("Just before input prompt")
         # Encode input prompt
         prompt = prompt if isinstance(prompt, list) else [prompt] * batch_size
         if negative_prompt is not None:
@@ -496,7 +496,7 @@ class AnimationPipeline(DiffusionPipeline):
         # Prepare timesteps
         self.scheduler.set_timesteps(num_inference_steps, device=device)
         timesteps = self.scheduler.timesteps
-        print("made it to prepare timesteps")
+        #print("made it to prepare timesteps")
         # Prepare latent variables
         num_channels_latents = self.unet.in_channels
         try:
@@ -516,7 +516,7 @@ class AnimationPipeline(DiffusionPipeline):
             print(f"Error: {e}")
 
         latents_dtype = latents.dtype
-        print("made it passed latent variables")
+        #print("made it passed latent variables")
         # Prepare extra step kwargs.
         extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
         total = sum(

@@ -43,7 +43,7 @@ def main(args):
     samples = []
     sample_idx = 0
 
-    print('Made it to line 54')
+    #print('Made it to line 54')
     for model_idx, (config_key, model_config) in enumerate(list(config.items())):
 
         motion_modules = model_config.motion_module
@@ -57,7 +57,7 @@ def main(args):
             unet = UNet3DConditionModel.from_pretrained_2d(args.pretrained_model_path, subfolder="unet",
                                                            unet_additional_kwargs=OmegaConf.to_container(
                                                                inference_config.unet_additional_kwargs))
-            print('Made it to line 68')
+            #print('Made it to line 68')
             if is_xformers_available():
                 print("Enabling Xformers")
                 #unet.enable_attention_slicing()
@@ -126,7 +126,7 @@ def main(args):
 
             config[config_key].random_seed = []
             for prompt_idx, (prompt, n_prompt, random_seed) in enumerate(zip(prompts, n_prompts, random_seeds)):
-                print('Made it to line 133')
+                #print('Made it to line 133')
                 # manually set random seed for reproduction
                 if random_seed != -1:
                     torch.manual_seed(random_seed)
@@ -157,7 +157,7 @@ def main(args):
                 save_videos_grid(sample, f"./AnimateDiff/outputs/{time_str}/{sample_idx}-{prompt}-{time_str}.gif")
                 if args.cloudsave:
                     save_videos_grid(sample, f"/content/outputs/{time_str}/{sample_idx}-{prompt}-{time_str}.gif")
-                print(f"saving original scale outputs to {savedir}/{sample_idx}-{prompt}-{time_str}.gif")
+                #print(f"saving original scale outputs to {savedir}/{sample_idx}-{prompt}-{time_str}.gif")
 
                 sample_idx += 1
 
@@ -174,9 +174,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-    print('attempting to parse arguments 1')
     parser = argparse.ArgumentParser()
-    print('first stage arguments parsed')
+    print('Arguments Parsed Successfully')
     parser.add_argument("--pretrained_model_path", type=str, default="./AnimateDiff/models/StableDiffusion" )
     parser.add_argument("--inference_config", type=str, default="./AnimateDiff/configs/inference/inference.yaml")
     parser.add_argument("--config", type=str, default="./AnimateDiff/configs/prompts/2-User.yaml")
@@ -195,7 +194,5 @@ if __name__ == "__main__":
     parser.add_argument("--L", type=int, default=16)
     parser.add_argument("--W", type=int, default=512)
     parser.add_argument("--H", type=int, default=512)
-    print('attempting to parse arguments 2')
     args = parser.parse_args()
-    print('reached main function call')
     main(args)
