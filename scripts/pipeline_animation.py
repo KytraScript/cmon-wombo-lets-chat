@@ -29,11 +29,11 @@ from diffusers.utils import deprecate, logging, BaseOutput
 
 from einops import rearrange
 
-from ..models.unet import UNet3DConditionModel
+from unet import UNet3DConditionModel
 
-from ..utils import overlap_policy
-from ..utils.path import get_absolute_path
-from ..utils.util import preprocess_image
+import overlap_policy
+from path import get_absolute_path
+from util import preprocess_image
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -348,7 +348,7 @@ class AnimationPipeline(DiffusionPipeline):
 
     def prepare_latents(self, init_image, batch_size, num_channels_latents, video_length, height, width, dtype, device,
                         generator, latents=None, init_image_strength=0.5):
-        strength = 0.01838 * init_image_strength
+        strength = 0.01938 * init_image_strength
         weight_training = strength + 0.006
         if init_image is None:
             init_latents = None
